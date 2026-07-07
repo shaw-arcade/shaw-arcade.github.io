@@ -222,6 +222,8 @@
   <div id="done">
     <div class="rocket">🚀</div>
     <h2>IDEA LAUNCHED!</h2>
+    <p id="doneMail" style="display:none; color:#ffd76e"><b>One last step!</b> Your mail app just opened
+    with your idea packed inside. Press <b>SEND</b> in the mail app to launch it to Takashi!</p>
     <p>Your game idea is flying to Takashi right now.</p>
     <p>Every game in this arcade started as an idea just like yours.
     Keep imagining, and watch the arcade for your game!</p>
@@ -243,6 +245,10 @@ document.querySelectorAll('#typeChips .chip').forEach(c => {
     pickedType = c.textContent.trim();
   });
 });
+
+// Paste a Web3Forms access key here to switch from the mail-app flow to
+// fully automatic background sending.
+const ARCADE_KEY = '';
 
 const FIELDS = () => ({
   'Kid name':        $('#fName').value.trim(),
@@ -281,31 +287,42 @@ $('#labForm').addEventListener('submit', async (e) => {
   }
   err.style.display = 'none';
   const btn = $('#sendBtn');
-  btn.disabled = true; btn.textContent = 'LAUNCHING...';
-  try {
-    const res = await fetch('https://formsubmit.co/ajax/takashi.shaw@gmail.com', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({
-        ...f,
-        _subject: '🎮 New arcade game idea from ' + f['Kid name'] + '!',
-        _template: 'table',
-        _captcha: 'false',
-        _honey: ''
-      })
-    });
-    const j = await res.json().catch(() => ({}));
-    if (!res.ok || (j.success !== undefined && String(j.success) !== 'true')) throw new Error(j.message || 'send failed');
-    $('#labForm').style.display = 'none';
-    $('#done').style.display = 'block';
-    window.scrollTo(0, 0);
-  } catch (ex) {
-    btn.disabled = false; btn.textContent = 'SEND MY IDEA 🚀';
-    err.style.display = 'block';
-    err.innerHTML = 'Hmm, the rocket sputtered. Check the internet and try again, or ' +
-      '<a href="' + mailtoFallback(f) + '">send it by email instead</a>.';
+  if (ARCADE_KEY){
+    // fully automatic: send in the background via Web3Forms
+    btn.disabled = true; btn.textContent = 'LAUNCHING...';
+    try {
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          access_key: ARCADE_KEY,
+          subject: '🎮 New arcade game idea from ' + f['Kid name'] + '!',
+          from_name: "Takashi's Arcade Game Lab",
+          botcheck: false,
+          ...f
+        })
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.success) throw new Error(j.message || 'send failed');
+      showDone(false);
+    } catch (ex) {
+      btn.disabled = false; btn.textContent = 'SEND MY IDEA 🚀';
+      err.style.display = 'block';
+      err.innerHTML = 'Hmm, the rocket sputtered. Try again in a minute, or ' +
+        '<a href="' + mailtoFallback(f) + '">send it with the mail app instead</a>.';
+    }
+  } else {
+    // mail-app flow: open a prefilled email, kid presses Send there
+    window.location.href = mailtoFallback(f);
+    showDone(true);
   }
 });
+function showDone(mailApp){
+  $('#labForm').style.display = 'none';
+  $('#done').style.display = 'block';
+  $('#doneMail').style.display = mailApp ? 'block' : 'none';
+  window.scrollTo(0, 0);
+}
 
 // starfield
 const sc = $('#stars'), sctx = sc.getContext('2d');
