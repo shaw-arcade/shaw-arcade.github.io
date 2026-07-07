@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Lab - Takashi's Arcade</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; min-height: 100%;
+    background: #0b0b1e;
+    color: #eef6ff;
+    font-family: "Courier New", monospace;
+  }
+  body {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 28px 16px 50px;
+    background:
+      radial-gradient(1200px 500px at 50% -10%, rgba(255,215,110,0.16), transparent 65%),
+      #0b0b1e;
+    min-height: 100vh;
+  }
+  #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  header, main { position: relative; z-index: 1; width: 100%; max-width: 720px; }
+
+  header { text-align: center; margin-bottom: 24px; }
+  .back {
+    display: inline-block; margin-bottom: 16px; color: #8f9bc4;
+    text-decoration: none; font-size: 14px; letter-spacing: 1px;
+  }
+  .back:hover { color: #00f7ff; }
+  .marquee {
+    display: inline-block;
+    border: 4px solid #ffd76e;
+    border-radius: 20px;
+    padding: 14px 30px 12px;
+    box-shadow: 0 0 22px rgba(255,215,110,0.4), inset 0 0 22px rgba(255,215,110,0.12);
+    background: rgba(255,215,110,0.05);
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(26px, 6vw, 44px);
+    letter-spacing: 5px;
+    color: #ffd76e;
+    text-shadow: 0 0 12px rgba(255,215,110,0.8), 0 0 40px rgba(255,215,110,0.3);
+  }
+  .tag { margin-top: 10px; color: #b9c4e8; font-size: clamp(13px, 3vw, 16px); line-height: 1.6; }
+  .tag b { color: #ff8fc7; }
+
+  .panel {
+    background: #131332;
+    border: 3px solid #2c2c5c;
+    border-radius: 20px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  label.big {
+    display: block;
+    font-size: 15px;
+    letter-spacing: 2px;
+    color: #00f7ff;
+    margin-bottom: 4px;
+    font-weight: bold;
+  }
+  .hint { font-size: 12.5px; color: #8f9bc4; margin: 0 0 10px; line-height: 1.5; }
+  input[type=text], textarea {
+    width: 100%;
+    background: #0b0b1e;
+    border: 2px solid #3a3a6e;
+    border-radius: 12px;
+    color: #eef6ff;
+    font-family: inherit;
+    font-size: 16px;
+    padding: 12px 14px;
+  }
+  input[type=text]:focus, textarea:focus { outline: none; border-color: #ff8fc7; }
+  textarea { min-height: 110px; resize: vertical; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip {
+    border: 2px solid #3a3a6e;
+    background: #0b0b1e;
+    color: #b9c4e8;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .chip.sel {
+    border-color: #ffd76e;
+    color: #ffd76e;
+    box-shadow: 0 0 12px rgba(255,215,110,0.35);
+  }
+
+  .imagine {
+    border-color: #ff8fc7;
+    box-shadow: 0 0 18px rgba(255,143,199,0.25);
+  }
+  .imagine label.big { color: #ff8fc7; }
+
+  .sendrow { text-align: center; margin-top: 6px; }
+  #sendBtn {
+    background: #ff8fc7;
+    border: 0;
+    color: #0b0b1e;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 20px;
+    letter-spacing: 2px;
+    padding: 16px 40px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(255,143,199,0.5), 0 6px 0 #c9629b;
+  }
+  #sendBtn:active { transform: translateY(4px); box-shadow: 0 0 20px rgba(255,143,199,0.5), 0 2px 0 #c9629b; }
+  #sendBtn:disabled { opacity: .6; cursor: wait; }
+  #sendBtn:focus-visible { outline: 4px solid #00f7ff; outline-offset: 3px; }
+  .smallnote { margin-top: 12px; font-size: 12px; color: #8f9bc4; }
+
+  #done {
+    display: none;
+    text-align: center;
+    padding: 40px 20px;
+  }
+  #done .rocket { font-size: 80px; }
+  #done h2 { color: #a6ff00; letter-spacing: 3px; text-shadow: 0 0 14px rgba(166,255,0,0.6); }
+  #done p { color: #b9c4e8; line-height: 1.7; max-width: 440px; margin: 10px auto; }
+  #err {
+    display: none;
+    margin-top: 14px; padding: 12px;
+    border: 2px dashed #ff3355; border-radius: 12px;
+    color: #ff9bb0; font-size: 14px; line-height: 1.6; text-align: center;
+  }
+  #err a { color: #00f7ff; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<header>
+  <a class="back" href="../">← Back to Takashi's Arcade</a>
+  <div><div class="marquee"><h1>🧪 GAME LAB</h1></div></div>
+  <p class="tag">This is where new arcade games are born.<br>
+  <b>Anything is possible with your imagination.</b> Fill in the machine and hit SEND!</p>
+</header>
+
+<main>
+  <form id="labForm">
+    <div class="panel">
+      <label class="big" for="fName">WHO ARE YOU?</label>
+      <p class="hint">Your first name, so the arcade knows who dreamed this up.</p>
+      <input type="text" id="fName" maxlength="20" placeholder="Your name" autocomplete="off">
+    </div>
+
+    <div class="panel">
+      <label class="big" for="fTitle">NAME YOUR GAME</label>
+      <p class="hint">Make something up! "Taco Tornado"? "Super Sloth Rescue"? Anything goes.</p>
+      <input type="text" id="fTitle" maxlength="40" placeholder="My game is called..." autocomplete="off">
+    </div>
+
+    <div class="panel">
+      <label class="big">WHAT KIND OF GAME?</label>
+      <p class="hint">Tap one. Or tap "Something brand new" and describe it below!</p>
+      <div class="chips" id="typeChips">
+        <button type="button" class="chip">🌀 Maze</button>
+        <button type="button" class="chip">🚀 Dodging</button>
+        <button type="button" class="chip">🏁 Racing</button>
+        <button type="button" class="chip">🧩 Puzzle</button>
+        <button type="button" class="chip">🦘 Jumping</button>
+        <button type="button" class="chip">🎣 Catching</button>
+        <button type="button" class="chip">🗺️ Adventure</button>
+        <button type="button" class="chip">✨ Something brand new</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <label class="big" for="fHero">YOUR HERO</label>
+      <p class="hint">Who do you play as? A ninja pickle? A cloud puppy? A robot unicorn?</p>
+      <input type="text" id="fHero" maxlength="80" placeholder="I play as..." autocomplete="off">
+    </div>
+
+    <div class="panel">
+      <label class="big" for="fWorld">THE WORLD</label>
+      <p class="hint">Where does it happen? A candy volcano? Under the sea? Inside a computer?</p>
+      <input type="text" id="fWorld" maxlength="80" placeholder="It happens in..." autocomplete="off">
+    </div>
+
+    <div class="panel">
+      <label class="big" for="fGoal">HOW DO YOU WIN?</label>
+      <p class="hint">Collect 100 cookies? Rescue the moon? Escape the Broccoli King?</p>
+      <input type="text" id="fGoal" maxlength="120" placeholder="You win by..." autocomplete="off">
+    </div>
+
+    <div class="panel">
+      <label class="big" for="fPower">SPECIAL POWERS</label>
+      <p class="hint">Double jump? Freeze time? Turn into a T-rex for 5 seconds?</p>
+      <input type="text" id="fPower" maxlength="120" placeholder="My hero can..." autocomplete="off">
+    </div>
+
+    <div class="panel">
+      <label class="big" for="fTricky">WHAT MAKES IT TRICKY?</label>
+      <p class="hint">Lava floors? Sneaky robots? A countdown? Slippery ice?</p>
+      <input type="text" id="fTricky" maxlength="120" placeholder="Watch out for..." autocomplete="off">
+    </div>
+
+    <div class="panel imagine">
+      <label class="big" for="fNotes">🌈 IMAGINATION STATION</label>
+      <p class="hint">The magic box. Add ANYTHING you want, the weirder and wilder the better.
+      Nothing is too crazy. If you can dream it, it can be built!</p>
+      <textarea id="fNotes" maxlength="1500" placeholder="And one more thing... the floor is made of jelly, and the moon is actually a giant hamster, and..."></textarea>
+    </div>
+
+    <div class="sendrow">
+      <button type="submit" id="sendBtn">SEND MY IDEA 🚀</button>
+      <div class="smallnote">Your idea flies straight to Takashi, the arcade builder.</div>
+      <div id="err"></div>
+    </div>
+  </form>
+
+  <div id="done">
+    <div class="rocket">🚀</div>
+    <h2>IDEA LAUNCHED!</h2>
+    <p>Your game idea is flying to Takashi right now.</p>
+    <p>Every game in this arcade started as an idea just like yours.
+    Keep imagining, and watch the arcade for your game!</p>
+    <p><a href="../" style="color:#00f7ff">← Back to the arcade</a></p>
+  </div>
+</main>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+
+// game type chips (single select)
+let pickedType = '';
+document.querySelectorAll('#typeChips .chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('#typeChips .chip').forEach(x => x.classList.remove('sel'));
+    c.classList.add('sel');
+    pickedType = c.textContent.trim();
+  });
+});
+
+const FIELDS = () => ({
+  'Kid name':        $('#fName').value.trim(),
+  'Game title':      $('#fTitle').value.trim(),
+  'Game type':       pickedType,
+  'Hero':            $('#fHero').value.trim(),
+  'World':           $('#fWorld').value.trim(),
+  'How you win':     $('#fGoal').value.trim(),
+  'Special powers':  $('#fPower').value.trim(),
+  'What makes it tricky': $('#fTricky').value.trim(),
+  'Imagination station':  $('#fNotes').value.trim()
+});
+
+function mailtoFallback(f){
+  const body = Object.entries(f).map(([k,v]) => k + ': ' + (v || '-')).join('\n');
+  return 'mailto:takashi.shaw@gmail.com?subject=' +
+    encodeURIComponent('🎮 New arcade game idea from ' + (f['Kid name'] || 'a kid')) +
+    '&body=' + encodeURIComponent(body);
+}
+
+$('#labForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = FIELDS();
+  const err = $('#err');
+  if (!f['Kid name']){
+    err.style.display = 'block';
+    err.textContent = 'Tell us your name first, so we know which genius sent this!';
+    $('#fName').focus();
+    return;
+  }
+  const creative = f['Hero'] || f['How you win'] || f['Imagination station'] || f['Game title'];
+  if (!creative){
+    err.style.display = 'block';
+    err.textContent = 'Give us at least one idea: a hero, a way to win, or something wild in the Imagination Station!';
+    return;
+  }
+  err.style.display = 'none';
+  const btn = $('#sendBtn');
+  btn.disabled = true; btn.textContent = 'LAUNCHING...';
+  try {
+    const res = await fetch('https://formsubmit.co/ajax/takashi.shaw@gmail.com', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        ...f,
+        _subject: '🎮 New arcade game idea from ' + f['Kid name'] + '!',
+        _template: 'table',
+        _captcha: 'false',
+        _honey: ''
+      })
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok || (j.success !== undefined && String(j.success) !== 'true')) throw new Error(j.message || 'send failed');
+    $('#labForm').style.display = 'none';
+    $('#done').style.display = 'block';
+    window.scrollTo(0, 0);
+  } catch (ex) {
+    btn.disabled = false; btn.textContent = 'SEND MY IDEA 🚀';
+    err.style.display = 'block';
+    err.innerHTML = 'Hmm, the rocket sputtered. Check the internet and try again, or ' +
+      '<a href="' + mailtoFallback(f) + '">send it by email instead</a>.';
+  }
+});
+
+// starfield
+const sc = $('#stars'), sctx = sc.getContext('2d');
+let stars = [];
+function sizeStars(){
+  sc.width = innerWidth * devicePixelRatio; sc.height = innerHeight * devicePixelRatio;
+  stars = Array.from({length: 60}, () => ({
+    x: Math.random()*sc.width, y: Math.random()*sc.height,
+    r: (Math.random()*1.4+0.4)*devicePixelRatio, tw: Math.random()*Math.PI*2
+  }));
+}
+sizeStars();
+addEventListener('resize', sizeStars);
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function tick(t){
+  sctx.clearRect(0,0,sc.width,sc.height);
+  for (const s of stars){
+    const a = still ? 0.5 : 0.25 + 0.3*Math.sin(t/900 + s.tw);
+    sctx.fillStyle = 'rgba(255,255,255,'+a.toFixed(2)+')';
+    sctx.beginPath(); sctx.arc(s.x, s.y, s.r, 0, 7); sctx.fill();
+  }
+  if (!still) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
