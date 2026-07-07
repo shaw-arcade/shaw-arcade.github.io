@@ -306,23 +306,42 @@ $('#labForm').addEventListener('submit', async (e) => {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j.success) throw new Error(j.message || 'send failed');
-      showDone(false);
+      showDone('auto');
     } catch (ex) {
       btn.disabled = false; btn.textContent = 'SEND MY IDEA 🚀';
       err.style.display = 'block';
       err.innerHTML = 'Hmm, the rocket sputtered. Try again in a minute, or ' +
         '<a href="' + mailtoFallback(f) + '">send it with the mail app instead</a>.';
     }
+  } else if (navigator.share) {
+    // share sheet (iPad/iPhone): kid picks Messages or anything else on the
+    // device and sends the idea to Takashi. No email account needed.
+    const body = Object.entries(f).map(([k,v]) => k + ': ' + (v || '-')).join('\n');
+    try {
+      await navigator.share({
+        title: 'New arcade game idea',
+        text: '🎮 New arcade game idea for Takashi!\n\n' + body
+      });
+      showDone('shared');
+    } catch (ex) {
+      // kid closed the share menu; stay on the form so nothing is lost
+    }
   } else {
     // mail-app flow: open a prefilled email, kid presses Send there
     window.location.href = mailtoFallback(f);
-    showDone(true);
+    showDone('mail');
   }
 });
-function showDone(mailApp){
+function showDone(mode){
   $('#labForm').style.display = 'none';
   $('#done').style.display = 'block';
-  $('#doneMail').style.display = mailApp ? 'block' : 'none';
+  const dm = $('#doneMail');
+  if (mode === 'mail'){
+    dm.style.display = 'block';
+    dm.innerHTML = '<b>One last step!</b> Your mail app just opened with your idea packed inside. Press <b>SEND</b> in the mail app to launch it to Takashi!';
+  } else {
+    dm.style.display = 'none';
+  }
   window.scrollTo(0, 0);
 }
 
